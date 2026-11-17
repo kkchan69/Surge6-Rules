@@ -1,0 +1,148 @@
+# Surge6-Rules
+
+[![GitHub stars](https://img.shields.io/github/stars/kkchan69/Surge6-Rules?style=social)](https://github.com/kkchan69/Surge6-Rules/stargazers)
+[![License: MIT](https://img.shields.io/github/license/kkchan69/Surge6-Rules)](LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/kkchan69/Surge6-Rules)](https://github.com/kkchan69/Surge6-Rules/commits/main)
+[![Validate rules](https://github.com/kkchan69/Surge6-Rules/actions/workflows/validate-rules.yml/badge.svg)](https://github.com/kkchan69/Surge6-Rules/actions/workflows/validate-rules.yml)
+
+**English** | [简体中文](README.zh-CN.md)
+
+> **中文简介**：一套面向 Surge 6（iOS）的分流规则仓库——国内直连、海外代理、广告拦截，AI 与流媒体单独分组。包含可直接套用的配置模板和 12 个自维护规则集（304 条规则），不包含任何节点或机场订阅。点下方链接可一键导入 Surge。
+
+**One-click import (iOS, with Surge installed):**
+[surge:///install-config?url=https%3A%2F%2Fraw.githubusercontent.com%2Fkkchan69%2FSurge6-Rules%2Fmain%2Fsurge.conf](surge:///install-config?url=https%3A%2F%2Fraw.githubusercontent.com%2Fkkchan69%2FSurge6-Rules%2Fmain%2Fsurge.conf)
+
+Or copy the raw profile URL manually:
+
+```
+https://raw.githubusercontent.com/kkchan69/Surge6-Rules/main/surge.conf
+```
+
+> If this project helps you, please consider giving it a ⭐ — it helps other Surge users find it, and it is the best signal that the rules are worth maintaining. Found a domain routed the wrong way? [Open an issue](https://github.com/kkchan69/Surge6-Rules/issues/new/choose) or see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## VLESS
+
+Surge 6 supports VLESS natively (iOS 6.0.0+ / Mac 6.12.0+), including REALITY and the XTLS Vision flow. See the [official VLESS documentation](https://manual.nssurge.com/policies/vless.html). The template's `[Proxy]` section in `surge.conf` includes commented VLESS examples — REALITY + Vision, WebSocket + TLS, and RAW + TLS + Vision — with placeholders only. Fill in your own server, UUID, SNI, and REALITY public key. XHTTP, HTTPUpgrade, mKCP, and VLESS Encryption are not supported.
+
+## Malaysia / Abroad
+
+If you are using Surge **outside mainland China** (for example in Malaysia), use `surge-malaysia.conf` instead of `surge.conf`. The routing is inverted: China services go through a China-return node (a node located in mainland China — an overseas node cannot unblock geo-restricted China services), while overseas services go direct and `FINAL` is direct. One-click import:
+
+[surge:///install-config?url=https%3A%2F%2Fraw.githubusercontent.com%2Fkkchan69%2FSurge6-Rules%2Fmain%2Fsurge-malaysia.conf](surge:///install-config?url=https%3A%2F%2Fraw.githubusercontent.com%2Fkkchan69%2FSurge6-Rules%2Fmain%2Fsurge-malaysia.conf)
+
+## Quick Start
+
+### Option 1: Full profile (recommended for new users)
+
+1. Edit [`surge.conf`](surge.conf) first: add your own nodes under `[Proxy]`, and update the members of each group under `[Proxy Group]` to your node names. As shipped, the groups contain only `DIRECT` as a fallback, so the profile imports cleanly but proxy groups will go direct until you add nodes.
+2. In the Surge app: Profile -> Download Profile from URL, then paste:
+
+```
+https://raw.githubusercontent.com/kkchan69/Surge6-Rules/main/surge.conf
+```
+
+> Note: with a remote URL, the version on GitHub is what takes effect. If you need to edit the node section, it is usually easier to download the file, edit it locally, and import it as a local file — or fork this repository and use your own URL.
+
+### Option 2: Rule sets only
+
+Add these lines to the `[Rule]` section of your existing profile, in this order (domain sets first, IP sets after them):
+
+```ini
+RULE-SET,https://raw.githubusercontent.com/kkchan69/Surge6-Rules/main/rules/Reject.list,REJECT
+RULE-SET,https://raw.githubusercontent.com/kkchan69/Surge6-Rules/main/rules/AI.list,Proxy
+RULE-SET,https://raw.githubusercontent.com/kkchan69/Surge6-Rules/main/rules/China.list,DIRECT
+# See the table below for the rest; surge.conf is the reference for the full order.
+GEOIP,CN,DIRECT
+FINAL,Proxy,dns-failed
+```
+
+## Rule Sets
+
+| Rule set | Purpose | Policy in the template |
+|---|---|---|
+| `rules/Reject.list` | Ad and tracker blocking (starter edition) | `REJECT` |
+| `rules/AI.list` | OpenAI / ChatGPT, Claude, Gemini entry points, Perplexity, xAI, etc. | `🤖 AI` |
+| `rules/YouTube.list` | YouTube and its video CDN | `📺 Streaming` |
+| `rules/Streaming.list` | Disney+, Max, Hulu, Twitch, Spotify, etc. | `📺 Streaming` |
+| `rules/Telegram-ASN.list` | Telegram autonomous systems (AS62041, AS62014, AS59930, AS44907, AS211157 — an IP set, place it after all domain sets) | `💬 Telegram` |
+| `rules/Google.list` | Core Google services (YouTube excluded) | `🌍 Global` |
+| `rules/Microsoft.list` | Microsoft, Office, OneDrive, LinkedIn, etc. | `🌍 Global` |
+| `rules/Developer.list` | GitHub, GitLab, npm, Docker, etc. | `🌍 Global` |
+| `rules/Global.list` | Other popular overseas services | `🌍 Global` |
+| `rules/Apple.list` | Apple, iCloud, App Store, etc. | `🍎 Apple` (direct by default) |
+| `rules/China.list` | Popular China services: banking, payments, video, travel, domestic AI, etc. | `🏠 Domestic` |
+| `rules/Private.list` | LAN and private IP ranges | `DIRECT` |
+
+Raw URL pattern: `https://raw.githubusercontent.com/kkchan69/Surge6-Rules/main/rules/<file name>`
+
+## Rule Order (Important)
+
+Surge matches rules from top to bottom; **the first match wins**. This repository follows this order:
+
+1. `Reject` blocking first
+2. Domain rule sets: AI -> Streaming -> Google / Microsoft / Developer -> Apple -> China
+3. IP rule sets: Telegram-ASN, Private, and the built-in `LAN` set — these must stay after all domain sets to avoid unnecessary DNS resolution
+4. China fallback: `DOMAIN-SUFFIX,cn`, then `GEOIP,CN`
+5. `FINAL` as the last catch-all
+
+## GeoIP Database
+
+Both profile templates set `geoip-maxmind-url` to this repository's own database, `geoip/cn-my.mmdb` (MaxMind `GeoLite2-Country` format, 379 KB), built from the [Loyalsoldier/geoip](https://github.com/Loyalsoldier/geoip) CIDR lists: 9,640 China (CN) networks and 3,989 Malaysia (MY) networks, IPv4 and IPv6. One file serves both `GEOIP,CN` (both templates) and `GEOIP,MY` (Malaysia template, matched to `DIRECT` so local traffic never leaves the country). IPs outside CN/MY have no record, exactly like a country-only `chnroutes` database.
+
+## Loon
+
+Using [Loon](https://nsloon.app/) instead of Surge? `loon.conf` and `loon-malaysia.conf` are Loon ports of the two Surge templates — same policy groups, same rule order, and the same 12 rule sets referenced as remote rules, so both apps stay in sync. Import in Loon via Config -> + -> Download config from URL:
+
+```
+https://raw.githubusercontent.com/kkchan69/Surge6-Rules/main/loon.conf
+https://raw.githubusercontent.com/kkchan69/Surge6-Rules/main/loon-malaysia.conf
+```
+
+Differences from the Surge templates: the GeoIP database is set with `geoip-url` (same `geoip/cn-my.mmdb`), and `IP-ASN` matching uses a separate ASN database via `ipasn-url`, pointing at this repo's self-built `geoip/asn.mmdb` (MaxMind `GeoLite2-ASN` format, built from BGP routing data). The `[Proxy]` examples use Loon syntax, including a commented `tailscale` node example if you want an exit-node chain. Verified on Loon 3.5.4 (Build 1016).
+
+## Panels
+
+Three information panels live under `modules/panel/` — install each `.sgmodule` URL in Surge under Settings -> Modules:
+
+| Panel | Shows |
+|---|---|
+| IP Check (`panel/IP-Check.sgmodule`) | Current outbound IP, location and ISP |
+| Subscription (`panel/Sub-Info.sgmodule`) | Subscription traffic used / remaining and expiry date |
+| Reload DNS (`panel/Reload-DNS.sgmodule`) | Tap refresh to flush the DNS cache and reload the current profile |
+
+The Subscription panel needs your own subscription URL, entered in the module's settings in Surge after installing; it is stored on your device only and never in this repository. See [`modules/README.md`](modules/README.md) for details.
+
+## Repository Layout
+
+```
+Surge6-Rules/
+├── surge.conf          # Surge 6 profile template for use in China (add your own nodes before use)
+├── surge-malaysia.conf # Surge 6 profile template for use outside China, e.g. Malaysia (add your own nodes before use)
+├── loon.conf           # Loon profile template for use in China (same groups and rules as surge.conf)
+├── loon-malaysia.conf  # Loon profile template for use outside China, e.g. Malaysia
+├── rules/              # 12 self-maintained RULE-SET files (.list, no policy column)
+├── geoip/              # Self-built databases: cn-my.mmdb (CN+MY country) + asn.mmdb (ASN, for Loon ipasn-url)
+├── modules/            # .sgmodule template, notes, and panel modules
+├── docs/               # Maintenance guide
+├── LICENSE
+└── README.md
+```
+
+## Maintenance Notes
+
+- Each `.list` file is a `RULE-SET` file: one rule per line, **with no policy**, and comments start with `#`. See the [Surge manual - Rule Sets](https://manual.nssurge.com/rules/ruleset.html).
+- Before adding a domain, pick the right category: China direct traffic goes to `China.list`, overseas services go to the matching service set, and ads go to `Reject.list`.
+- Do not duplicate a domain across sets; the earlier set wins. `YouTube` and `Telegram-ASN` are intentionally split out of the larger categories.
+- This is a curated starter edition, not a full-size database. For 100k-scale coverage, you can reference upstream rule sets such as blackmatrix7 or Sukka alongside these self-maintained sets — just keep the order above.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history. The current release is **v1.10.0**.
+
+## Disclaimer
+
+This repository is for learning and personal network management only. The rules were compiled from publicly known service domains. Please comply with local laws and regulations and with Surge's terms of use.
+
+## License
+
+MIT
