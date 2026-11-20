@@ -1,0 +1,9 @@
+#!name = hazegi-DoH
+#!desc = DNS-over-HTTPS (DoH)
+
+[General]
+dns-server = 1.0.0.1,8.8.4.4
+encrypted-dns-server = https://freedns.controld.com/x-hagezi-pro
+
+[Host]
+unifi.my = 192.168.1.1
