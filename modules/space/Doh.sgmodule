@@ -2,7 +2,7 @@
 #!desc = DNS-over-HTTPS (DoH)
 
 [General]
-dns-server = 1.0.0.1,8.8.4.4
+dns-server = 1.0.0.1
 encrypted-dns-server = https://freedns.controld.com/x-hagezi-pro
 
 [Host]
